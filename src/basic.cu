@@ -3,10 +3,9 @@ using namespace std;
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <opencv2/opencv.hpp>
-#include <curand.h>
+using namespace cv;
 #include <curand_kernel.h>
 #include <cuda_gl_interop.h>
-using namespace cv;
 
 #define TWO_PI 6.28318530718f
 #define W 512
@@ -15,6 +14,7 @@ using namespace cv;
 #define MAX_STEP 10
 #define MAX_DISTANCE 2.0f
 #define EPSILON 1e-6f
+
 #define block_x 32
 
 __device__
@@ -24,7 +24,7 @@ float circleSDF(float x, float y, float cx, float cy, float r) {
 }
 
 __device__
-float trace(float ox, float oy, float dx, float dy) {
+float Trace(float ox, float oy, float dx, float dy) {
 	float t = 0.0f;
 	for (int i = 0; i < MAX_STEP && t < MAX_DISTANCE; i++) {
 		float sd = circleSDF(ox + dx * t, oy + dy * t, 0.5f, 0.5f, 0.1f);
@@ -54,10 +54,8 @@ void Sample(curandState *rand_states, float *buffer) {
 
 	float sum = 0.0f;
 	for (int i = 0; i < N; i++) {
-		// float a = TWO_PI * rand() / RAND_MAX;
-		// float a = TWO_PI * i / N;
 		float a = TWO_PI * (i + curand_uniform(rand_states + offset)) / N;
-		sum += trace(float(x) / W, float(y) / H, cos(a), sin(a));
+		sum += Trace(float(x) / W, float(y) / H, cos(a), sin(a));
 	}
 	buffer[offset * 3 + 0] = sum / N * 255;
 	buffer[offset * 3 + 1] = sum / N * 255;
@@ -74,10 +72,7 @@ int main() {
 
 	Sample<<<dim3((W-1)/block_x+1, (H-1)/block_x+1), dim3(block_x, block_x)>>>(rand_states, buffer);
 
-	float *cuda_buffer;
-	cudaMalloc(&cuda_buffer, W * H * 3 * sizeof(float));
-	Sample<<<dim3((W-1)/block_x+1, (H-1)/block_x+1), dim3(block_x, block_x)>>>(rand_states, cuda_buffer);
 	Mat img = Mat(H, W, CV_32FC3);
-	cudaMemcpy(img.data, cuda_buffer, W * H * 3 * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(img.data, buffer, W * H * 3 * sizeof(float), cudaMemcpyDeviceToHost);
 	imwrite("baisc.png", img);
 }

@@ -3,10 +3,11 @@ using namespace std;
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <opencv2/opencv.hpp>
-#include <curand.h>
+using namespace cv;
 #include <curand_kernel.h>
 #include <cuda_gl_interop.h>
-using namespace cv;
+
+#include "fps.hpp"
 
 #define TWO_PI 6.28318530718f
 #define W 512
@@ -15,11 +16,12 @@ using namespace cv;
 #define MAX_STEP 10
 #define MAX_DISTANCE 2.0f
 #define EPSILON 1e-6f
+
 #define block_x 32
 
-bool moved = false;
-float *light_dev;
+bool updated = false;
 float light[2] = {0.5f, 0.5f};
+__device__ float light_dev[2];
 
 static void error_callback(int error, const char* description) {
 	fprintf(stderr, "Error: %s\n", description);
@@ -28,19 +30,19 @@ static void error_callback(int error, const char* description) {
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
 		light[0] += 0.01f;
-		moved = true;
+		updated = true;
 	}
 	if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
 		light[1] += 0.01f;
-		moved = true;
+		updated = true;
 	}
 	if(glfwGetKey( window, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
 		light[0] -= 0.01f;
-		moved = true;
+		updated = true;
 	}
 	if(glfwGetKey( window, GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
 		light[1] -= 0.01f;
-		moved = true;
+		updated = true;
 	}
 }
 
@@ -51,10 +53,10 @@ float circleSDF(float x, float y, float cx, float cy, float r) {
 }
 
 __device__
-float trace(float ox, float oy, float dx, float dy, float *light) {
+float trace(float ox, float oy, float dx, float dy) {
 	float t = 0.0f;
 	for (int i = 0; i < MAX_STEP && t < MAX_DISTANCE; i++) {
-		float sd = circleSDF(ox + dx * t, oy + dy * t, light[0], light[1], 0.1f);
+		float sd = circleSDF(ox + dx * t, oy + dy * t, light_dev[0], light_dev[1], 0.1f);
 		if (sd < EPSILON)
 			return 2.0f;
 		t += sd;
@@ -63,7 +65,7 @@ float trace(float ox, float oy, float dx, float dy, float *light) {
 }
 
 __global__
-void Sample(curandState *rand_states, float *buffer, int c_sample, float *light) {
+void Sample(curandState *rand_states, float *buffer, int c_sample) {
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
 	if(x >= W || y >= H) return;
@@ -74,7 +76,7 @@ void Sample(curandState *rand_states, float *buffer, int c_sample, float *light)
 		// float a = TWO_PI * rand() / RAND_MAX;
 		// float a = TWO_PI * i / N;
 		float a = TWO_PI * (i + curand_uniform(rand_states + offset)) / N;
-		sum += trace(float(x) / W, float(y) / H, cos(a), sin(a), light);
+		sum += trace(float(x) / W, float(y) / H, cos(a), sin(a));
 	}
 	buffer[offset * 3 + 0] = (buffer[offset * 3 + 0] * (c_sample - 1) + sum / N) / c_sample;
 	buffer[offset * 3 + 1] = (buffer[offset * 3 + 1] * (c_sample - 1) + sum / N) / c_sample;
@@ -135,23 +137,19 @@ int main() {
 	cudaGraphicsMapResources(1, &resource, NULL);
 	cudaGraphicsResourceGetMappedPointer((void**)&dev_ptr, &size, resource);
 
-	cudaMalloc(&light_dev, sizeof(float) * 2);
-
-	int c_frame = 0;
+	FPS fps;
 	int c_sample = 0;
-	float time_old = glfwGetTime();
-	float time_new;
 	while(glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && !glfwWindowShouldClose(window)) {
-		if(moved) {
+		if(updated) {
 			glBufferData(GL_PIXEL_UNPACK_BUFFER, W * H * 3 * sizeof(float), image.data, GL_DYNAMIC_DRAW);
-			moved = false;
+			updated = false;
 			c_sample = 0;
 		}
 
 		c_sample++;
 		cudaGraphicsMapResources(1, &resource, NULL);
-		cudaMemcpy(light_dev, light, sizeof(float) * 2, cudaMemcpyHostToDevice);
-		Sample<<<dim3((W-1)/block_x+1, (H-1)/block_x+1), dim3(block_x, block_x)>>>(rand_states, dev_ptr, c_sample, light_dev);
+		cudaMemcpyToSymbol(light_dev, light, sizeof(float) * 2);
+		Sample<<<dim3((W-1)/block_x+1, (H-1)/block_x+1), dim3(block_x, block_x)>>>(rand_states, dev_ptr, c_sample);
 		cudaGraphicsUnmapResources(1, &resource, NULL);
 
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -159,18 +157,6 @@ int main() {
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
-		if(c_frame++ % 10 == 0) {
-			time_new = glfwGetTime();
-			double fps = 10 / (time_new - time_old);
-			time_old = time_new;
-			printf("FPS: %lf\n", fps);
-		}
+		fps.Update();
 	}
-
-	// float *cuda_buffer;
-	// cudaMalloc(&cuda_buffer, W * H * 3 * sizeof(float));
-	// Sample<<<dim3((W-1)/block_x+1, (H-1)/block_x+1), dim3(block_x, block_x)>>>(rand_states, cuda_buffer);
-	// Mat img = Mat(H, W, CV_32FC3);
-	// cudaMemcpy(img.data, cuda_buffer, W * H * 3 * sizeof(float), cudaMemcpyDeviceToHost);
-	// imwrite("baisc.png", img);
 }
