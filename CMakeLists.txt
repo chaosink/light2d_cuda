@@ -37,3 +37,9 @@ target_link_libraries(csg ${LIBRARIES})
 
 cuda_add_executable(csg_interactive src/csg_interactive.cu)
 target_link_libraries(csg_interactive ${LIBRARIES})
+
+cuda_add_executable(shapes src/shapes.cu)
+target_link_libraries(shapes ${LIBRARIES})
+
+cuda_add_executable(shapes_interactive src/shapes_interactive.cu)
+target_link_libraries(shapes_interactive ${LIBRARIES})

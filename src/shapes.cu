@@ -53,20 +53,65 @@ float CircleSDF(float x, float y, float cx, float cy, float r) {
 }
 
 __device__
+float PlaneSDF(float x, float y, float px, float py, float nx, float ny) {
+	return (x - px) * nx + (y - py) * ny;
+}
+
+__device__
+float SegmentSDF(float x, float y, float ax, float ay, float bx, float by) {
+	float vx = x - ax, vy = y - ay, ux = bx - ax, uy = by - ay;
+	float t = fmaxf(fminf((vx * ux + vy * uy) / (ux * ux + uy * uy), 1.0f), 0.0f);
+	float dx = vx - ux * t, dy = vy - uy * t;
+	return sqrtf(dx * dx + dy * dy);
+}
+
+__device__
+float CapsuleSDF(float x, float y, float ax, float ay, float bx, float by, float r) {
+	return SegmentSDF(x, y, ax, ay, bx, by) - r;
+}
+
+__device__
+float BoxSDF(float x, float y, float cx, float cy, float theta, float sx, float sy) {
+	float costheta = cosf(theta), sintheta = sinf(theta);
+	float dx = fabs((x - cx) * costheta + (y - cy) * sintheta) - sx;
+	float dy = fabs((y - cy) * costheta - (x - cx) * sintheta) - sy;
+	float ax = fmaxf(dx, 0.0f), ay = fmaxf(dy, 0.0f);
+	return fminf(fmaxf(dx, dy), 0.0f) + sqrtf(ax * ax + ay * ay);
+}
+
+__device__
+float TriangleSDF(float x, float y, float ax, float ay, float bx, float by, float cx, float cy) {
+	float d = fminf(fminf(
+		SegmentSDF(x, y, ax, ay, bx, by),
+		SegmentSDF(x, y, bx, by, cx, cy)),
+		SegmentSDF(x, y, cx, cy, ax, ay));
+	return
+		(bx - ax) * (y - ay) > (by - ay) * (x - ax) &&
+		(cx - bx) * (y - by) > (cy - by) * (x - bx) &&
+		(ax - cx) * (y - cy) > (ay - cy) * (x - cx) ? -d : d;
+}
+
+__device__
 Result Scene(float x, float y) {
-#if 0
-	Result r1 = {CircleSDF(x, y, 0.3f, 0.3f, 0.10f), 2.0f};
-	Result r2 = {CircleSDF(x, y, 0.3f, 0.7f, 0.05f), 0.8f};
-	Result r3 = {CircleSDF(x, y, 0.7f, 0.5f, 0.10f), 0.0f};
-	return UnionOp(UnionOp(r1, r2), r3);
-#else
-	Result a = {CircleSDF(x, y, 0.4f, 0.5f, 0.20f), 1.0f};
-	Result b = {CircleSDF(x, y, 0.6f, 0.5f, 0.20f), 0.8f};
-	return UnionOp(a, b);
-	// return IntersectOp(a, b);
-	// return SubtractOp(a, b);
-	// return SubtractOp(b, a);
-#endif
+	Result a = {  CircleSDF(x, y, 0.2f, 0.2f, 0.1f), 1.0f};
+	Result b = {   PlaneSDF(x, y, 0.0f, 0.5f, 0.0f, 1.0f), 0.8f};
+	Result c = { CapsuleSDF(x, y, 0.15f, 0.85f, 0.4f, 0.8f, 0.1f), 1.0f};
+	Result d = {     BoxSDF(x, y, 0.8f, 0.3f, TWO_PI / 5.0f, 0.25f, 0.1f), 1.0f};
+	Result e = {     BoxSDF(x, y, 0.5f, 0.5f, TWO_PI / 16.0f, 0.3f, 0.1f) - 0.1f, 1.0f};
+	Result f = {TriangleSDF(x, y, 0.5f, 0.2f, 0.8f, 0.8f, 0.3f, 0.6f), 1.0f};
+	Result g = {TriangleSDF(x, y, 0.5f, 0.2f, 0.8f, 0.8f, 0.3f, 0.6f) - 0.1f, 1.0f};
+	Result result = a;
+	result = UnionOp(result, c);
+	result = UnionOp(result, d);
+	result = UnionOp(result, f);
+	// return a;
+	// return b;
+	// return c;
+	// return d;
+	// return e;
+	// return f;
+	// return g;
+	return result;
 }
 
 __device__
@@ -120,5 +165,5 @@ int main() {
 
 	Mat img = Mat(H, W, CV_32FC3);
 	cudaMemcpy(img.data, buffer, W * H * 3 * sizeof(float), cudaMemcpyDeviceToHost);
-	imwrite("csg.png", img);
+	imwrite("shapes.png", img);
 }

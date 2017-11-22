@@ -11,7 +11,7 @@ using namespace cv;
 #define W 512
 #define H 512
 #define N 2048
-#define MAX_STEP 10
+#define MAX_STEP 8
 #define MAX_DISTANCE 2.0f
 #define EPSILON 1e-6f
 
@@ -55,7 +55,7 @@ void Sample(curandState *rand_states, float *buffer) {
 	float sum = 0.0f;
 	for (int i = 0; i < N; i++) {
 		float a = TWO_PI * (i + curand_uniform(rand_states + offset)) / N;
-		sum += Trace(float(x) / W, float(y) / H, cos(a), sin(a));
+		sum += Trace(float(x) / W, float(y) / H, cosf(a), sinf(a));
 	}
 	buffer[offset * 3 + 0] = sum / N * 255;
 	buffer[offset * 3 + 1] = sum / N * 255;
