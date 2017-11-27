@@ -7,6 +7,7 @@ find_package(OpenGL REQUIRED)
 find_package(OpenCV)
 
 # C++ list
+set(CMAKE_CXX_STANDARD 11)
 list(APPEND CMAKE_CXX_FLAGS "-std=c++11 -Wall")
 
 # CUDA list
@@ -19,11 +20,11 @@ list(APPEND CUDA_NVCC_FLAGS -gencode=arch=compute_61,code=sm_61)
 #list(APPEND CUDA_NVCC_FLAGS -gencode=arch=compute_62,code=sm_62)
 
 set(LIBRARIES
+	glfw
+	GLEW
 	${CUDA_curand_LIBRARY}
 	${CUDA_LIBRARIES}
 	${OPENGL_gl_LIBRARY}
-	glfw
-	GLEW
 	${OpenCV_LIBS})
 
 cuda_add_executable(basic src/basic.cu)
