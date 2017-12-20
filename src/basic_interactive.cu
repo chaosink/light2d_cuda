@@ -2,12 +2,10 @@
 using namespace std;
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <opencv2/opencv.hpp>
-using namespace cv;
 #include <curand_kernel.h>
 #include <cuda_gl_interop.h>
 
-#include "fps.hpp"
+#include "FPS.hpp"
 
 #define TWO_PI 6.28318530718f
 #define W 512
@@ -94,7 +92,7 @@ void InitRandStates(curandState *rand_states, long seed) {
 }
 
 int main() {
-	Mat image(H, W, CV_32FC3); // init buffer, all 0
+	float image[W * H * 3];
 
 	GLFWwindow* window;
 
@@ -121,7 +119,7 @@ int main() {
 	GLuint buffer;
 	glGenBuffers(1, &buffer);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buffer);
-	glBufferData(GL_PIXEL_UNPACK_BUFFER, W * H * 3 * sizeof(float), image.data, GL_DYNAMIC_DRAW);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, sizeof(image), image, GL_DYNAMIC_DRAW);
 	// glRasterPos2f(-1, 1);
 	// glPixelZoom(1, -1);
 
@@ -141,7 +139,7 @@ int main() {
 	int c_sample = 0;
 	while(glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && !glfwWindowShouldClose(window)) {
 		if(updated) {
-			glBufferData(GL_PIXEL_UNPACK_BUFFER, W * H * 3 * sizeof(float), image.data, GL_DYNAMIC_DRAW);
+			glBufferData(GL_PIXEL_UNPACK_BUFFER, sizeof(image), image, GL_DYNAMIC_DRAW);
 			updated = false;
 			c_sample = 0;
 		}

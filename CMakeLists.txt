@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 project(light2d_cuda LANGUAGES CXX CUDA)
 
 find_package(CUDA 9.0 REQUIRED)
-find_package(OpenCV REQUIRED)
 
 # C++ flags
 if(MSVC)
@@ -15,6 +14,7 @@ endif()
 
 # CUDA flags
 set(CMAKE_CUDA_STANDARD 11)
+string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_30,code=compute_30 ")
 string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_30,code=sm_30 ")
 # string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_32,code=sm_32 ")
 # string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_35,code=sm_35 ")
@@ -28,6 +28,7 @@ string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_61,code=sm_61 ")
 # string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_70,code=sm_70 ")
 
 include_directories(
+	src/thirdparty
 	src/thirdparty/glew-2.1.0/include
 	src/thirdparty/glfw-3.2.1/include
 	src/thirdparty/glm-0.9.8.5
@@ -39,8 +40,7 @@ set(LIBRARIES
 	glew_s
 	${CUDA_curand_LIBRARY}
 	${CUDA_LIBRARIES}
-	${OPENGL_gl_LIBRARY}
-	${OpenCV_LIBS})
+)
 
 add_executable(basic src/basic.cu)
 target_link_libraries(basic ${LIBRARIES})

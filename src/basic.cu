@@ -1,9 +1,9 @@
 #include <cmath>
 using namespace std;
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <opencv2/opencv.hpp>
-using namespace cv;
+#include "GL/glew.h"
+#include "GLFW/glfw3.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 #include <curand_kernel.h>
 #include <cuda_gl_interop.h>
 
@@ -72,7 +72,14 @@ int main() {
 
 	Sample<<<dim3((W-1)/block_x+1, (H-1)/block_x+1), dim3(block_x, block_x)>>>(rand_states, buffer);
 
-	Mat img = Mat(H, W, CV_32FC3);
-	cudaMemcpy(img.data, buffer, W * H * 3 * sizeof(float), cudaMemcpyDeviceToHost);
-	imwrite("baisc.png", img);
+	float image[W * H * 3];
+	cudaMemcpy(image, buffer, sizeof(image), cudaMemcpyDeviceToHost);
+
+	uint8_t output[W * H * 3];
+	for(int i = 0; i < H; ++i)
+		for(int j = 0; j < W; ++j)
+			for(int k = 0; k < 3; ++k) {
+				output[(i * W + j) * 3 + k] = image[(i * W + j) * 3 + k];
+			}
+	stbi_write_png("baisc.png", W, H, 3, output, 0);
 }
