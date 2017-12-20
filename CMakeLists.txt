@@ -4,6 +4,7 @@ project(light2d_cuda LANGUAGES CXX CUDA)
 find_package(CUDA 9.0 REQUIRED)
 
 # C++ flags
+set(CMAKE_CXX_STANDARD 11)
 if(MSVC)
 	add_definitions(-DCONSTEXPR=const -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
 else()
