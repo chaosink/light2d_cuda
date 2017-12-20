@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdio>
-#include <GLFW/glfw3.h>
+#include "GLFW/glfw3.h"
 
 class FPS {
 	int c_frame_ = 0;

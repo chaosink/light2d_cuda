@@ -1,7 +1,7 @@
 #include <cmath>
 using namespace std;
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include "GL/glew.h"
+#include "GLFW/glfw3.h"
 #include <curand_kernel.h>
 #include <cuda_gl_interop.h>
 
