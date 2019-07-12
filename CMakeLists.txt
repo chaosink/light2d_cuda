@@ -3,14 +3,20 @@ project(light2d_cuda LANGUAGES CXX CUDA)
 
 find_package(CUDA 9.0 REQUIRED)
 
-# C++ flags
-set(CMAKE_CXX_STANDARD 11)
+# ompiling options
+set(CMAKE_CXX_STANDARD 17)
 if(MSVC)
-	add_definitions(-DCONSTEXPR=const -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
+	set(EMBREE_MAX_ISA "SSE4.2" CACHE STRING "Selects highest ISA to support.")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Ox /openmp -d2SSAOptimizer-") # -d2SSAOptimizer- for MSVC bug
 else()
-	add_definitions(-DCONSTEXPR=constexpr)
-	set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing -Wno-unused-local-typedefs -Wno-misleading-indentation -Wno-maybe-uninitialized -Wno-int-in-bool-context -Wno-implicit-fallthrough")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_WARNINGS} -fvisibility-inlines-hidden -O3")
+	set(CXX_WARNINGS "-Wall -Wextra -Wpointer-arith -Wcast-align -fstrict-aliasing")
+	if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+		set(CXX_WARNINGS "${CXX_WARNINGS} -Wno-maybe-uninitialized")
+	endif()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_WARNINGS} -fvisibility-inlines-hidden -O3 -fopenmp")
+
+	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
 endif()
 
 # CUDA flags
