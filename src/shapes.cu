@@ -1,4 +1,5 @@
 #include <cmath>
+#include <vector>
 using namespace std;
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
@@ -163,14 +164,14 @@ int main() {
 
 	Sample<<<dim3((W-1)/block_x+1, (H-1)/block_x+1), dim3(block_x, block_x)>>>(rand_states, buffer);
 
-	float image[W * H * 3];
-	cudaMemcpy(image, buffer, sizeof(image), cudaMemcpyDeviceToHost);
+	vector<float> image(W * H * 3);
+	cudaMemcpy(image.data(), buffer, sizeof(float) * image.size(), cudaMemcpyDeviceToHost);
 
-	uint8_t output[W * H * 3];
+	vector<uint8_t> output(W * H * 3);
 	for(int i = 0; i < H; ++i)
 		for(int j = 0; j < W; ++j)
 			for(int k = 0; k < 3; ++k) {
 				output[(i * W + j) * 3 + k] = image[(i * W + j) * 3 + k];
 			}
-	stbi_write_png("shapes.png", W, H, 3, output, 0);
+	stbi_write_png("shapes.png", W, H, 3, output.data(), 0);
 }

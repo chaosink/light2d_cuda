@@ -1,4 +1,5 @@
 #include <cmath>
+#include <vector>
 using namespace std;
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
@@ -92,7 +93,7 @@ void InitRandStates(curandState *rand_states, long seed) {
 }
 
 int main() {
-	float image[W * H * 3];
+	vector<float> image(W * H * 3);
 
 	GLFWwindow* window;
 
@@ -119,7 +120,7 @@ int main() {
 	GLuint buffer;
 	glGenBuffers(1, &buffer);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buffer);
-	glBufferData(GL_PIXEL_UNPACK_BUFFER, sizeof(image), image, GL_DYNAMIC_DRAW);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, sizeof(float) * image.size(), image.data(), GL_DYNAMIC_DRAW);
 	// glRasterPos2f(-1, 1);
 	// glPixelZoom(1, -1);
 
@@ -139,7 +140,7 @@ int main() {
 	int c_sample = 0;
 	while(glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && !glfwWindowShouldClose(window)) {
 		if(updated) {
-			glBufferData(GL_PIXEL_UNPACK_BUFFER, sizeof(image), image, GL_DYNAMIC_DRAW);
+			glBufferData(GL_PIXEL_UNPACK_BUFFER, sizeof(float) * image.size(), image.data(), GL_DYNAMIC_DRAW);
 			updated = false;
 			c_sample = 0;
 		}

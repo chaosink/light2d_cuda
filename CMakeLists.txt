@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+
 project(light2d_cuda LANGUAGES CXX CUDA)
 
 find_package(CUDA 9.0 REQUIRED)
@@ -21,17 +22,6 @@ endif()
 
 # CUDA flags
 set(CMAKE_CUDA_STANDARD 11)
-string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_30,code=compute_30 ")
-string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_30,code=sm_30 ")
-# string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_32,code=sm_32 ")
-# string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_35,code=sm_35 ")
-# string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_50,code=sm_50 ")
-# string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_52,code=sm_52 ")
-# string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_53,code=sm_53 ")
-# string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_60,code=sm_60 ")
-string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_61,code=sm_61 ")
-# string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_62,code=sm_62 ")
-# string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_70,code=sm_70 ")
 
 include_directories(
 	src/thirdparty
