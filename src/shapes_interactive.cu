@@ -235,7 +235,7 @@ int main() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-	glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+	// glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 	window = glfwCreateWindow(W, H, "shapes_interactive", NULL, NULL);
 	if(!window) {
 		glfwTerminate();
